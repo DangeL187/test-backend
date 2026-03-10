@@ -1,0 +1,16 @@
+services:
+  postgres-test:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: mydb
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_test:/var/lib/postgresql/data
+      - ../schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+volumes:
+  postgres_data_test:
