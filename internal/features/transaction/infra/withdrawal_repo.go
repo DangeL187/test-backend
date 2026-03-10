@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 
 	"back/internal/features/transaction/domain"
+	"back/internal/infra/database"
 )
 
 type WithdrawalRepo struct {
@@ -19,7 +20,9 @@ func NewWithdrawalRepo(db *gorm.DB) *WithdrawalRepo {
 }
 
 func (r *WithdrawalRepo) Create(ctx context.Context, w *domain.Withdrawal) error {
-	err := r.db.WithContext(ctx).Create(w).Error
+	db := database.GetDB(ctx, r.db)
+
+	err := db.WithContext(ctx).Create(w).Error
 	if err != nil {
 		err = erax.Wrap(err, "failed to create withdrawal")
 		return erax.WithMeta(err, "layer", "DB")
@@ -29,8 +32,10 @@ func (r *WithdrawalRepo) Create(ctx context.Context, w *domain.Withdrawal) error
 }
 
 func (r *WithdrawalRepo) GetByID(ctx context.Context, withdrawalID int) (*domain.Withdrawal, error) {
+	db := database.GetDB(ctx, r.db)
+
 	var w domain.Withdrawal
-	err := r.db.WithContext(ctx).First(&w, withdrawalID).Error
+	err := db.WithContext(ctx).First(&w, withdrawalID).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, domain.ErrWithdrawalNotFound
 	} else if err != nil {
@@ -42,8 +47,10 @@ func (r *WithdrawalRepo) GetByID(ctx context.Context, withdrawalID int) (*domain
 }
 
 func (r *WithdrawalRepo) GetByIdempotencyKey(ctx context.Context, userID int, key string) (*domain.Withdrawal, error) {
+	db := database.GetDB(ctx, r.db)
+
 	var w domain.Withdrawal
-	err := r.db.WithContext(ctx).Where("user_id = ? AND idempotency_key = ?", userID, key).First(&w).Error
+	err := db.WithContext(ctx).Where("user_id = ? AND idempotency_key = ?", userID, key).First(&w).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, domain.ErrWithdrawalNotFound
 	} else if err != nil {
@@ -55,7 +62,9 @@ func (r *WithdrawalRepo) GetByIdempotencyKey(ctx context.Context, userID int, ke
 }
 
 func (r *WithdrawalRepo) Update(ctx context.Context, w *domain.Withdrawal) error {
-	err := r.db.WithContext(ctx).Save(w).Error
+	db := database.GetDB(ctx, r.db)
+
+	err := db.WithContext(ctx).Save(w).Error
 	if err != nil {
 		err = erax.Wrap(err, "failed to update withdrawal")
 		return erax.WithMeta(err, "layer", "DB")

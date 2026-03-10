@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 
 	"back/internal/features/transaction/domain"
+	"back/internal/infra/database"
 )
 
 type LedgerRepo struct {
@@ -18,7 +19,9 @@ func NewLedgerRepo(db *gorm.DB) *LedgerRepo {
 }
 
 func (r *LedgerRepo) Create(ctx context.Context, entry *domain.LedgerEntry) error {
-	err := r.db.WithContext(ctx).Create(entry).Error
+	db := database.GetDB(ctx, r.db)
+
+	err := db.WithContext(ctx).Create(entry).Error
 	if err != nil {
 		err = erax.Wrap(err, "failed to create ledger entry")
 		return erax.WithMeta(err, "layer", "DB")

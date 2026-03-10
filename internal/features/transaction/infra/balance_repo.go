@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 
 	"back/internal/features/transaction/domain"
+	"back/internal/infra/database"
 )
 
 type BalanceRepo struct {
@@ -18,9 +19,11 @@ func NewBalanceRepo(db *gorm.DB) *BalanceRepo {
 }
 
 func (r *BalanceRepo) GetBalance(ctx context.Context, userID int, currency string) (float64, error) {
+	db := database.GetDB(ctx, r.db)
+
 	var balance float64
 
-	err := r.db.WithContext(ctx).
+	err := db.WithContext(ctx).
 		Model(&domain.Balance{}).
 		Where("user_id = ? AND currency = ?", userID, currency).
 		Select("balance").
@@ -34,18 +37,20 @@ func (r *BalanceRepo) GetBalance(ctx context.Context, userID int, currency strin
 }
 
 func (r *BalanceRepo) UpdateBalance(ctx context.Context, userID int, currency string, amount float64) (float64, error) {
+	db := database.GetDB(ctx, r.db)
+
 	var newBalance float64
 
 	if amount < 0 {
 		// Concurrent balance update (-):
-		res := r.db.WithContext(ctx).
+		res := db.WithContext(ctx).
 			Raw(`
 	            UPDATE balances
 	            SET balance = balance + $1
-	            WHERE user_id = $2
+	            WHERE user_id = $2 AND currency = $3
 	            AND balance + $1 >= 0
 	            RETURNING balance
-        	`, amount, userID).
+        	`, amount, userID, currency).
 			Scan(&newBalance)
 		if res.Error != nil {
 			err := erax.Wrap(res.Error, "failed to withdraw balance")
@@ -58,7 +63,7 @@ func (r *BalanceRepo) UpdateBalance(ctx context.Context, userID int, currency st
 	}
 
 	// Concurrent balance update (+); create balance if it doesn't exist:
-	err := r.db.WithContext(ctx).
+	err := db.WithContext(ctx).
 		Raw(`
 	        WITH updated AS (
 				UPDATE balances

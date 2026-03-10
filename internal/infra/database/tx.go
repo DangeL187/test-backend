@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+
 	"gorm.io/gorm"
 )
 
@@ -20,4 +21,13 @@ func (m *TxManager) WithinTx(ctx context.Context, fn func(ctx context.Context) e
 		ctxWithTx := context.WithValue(ctx, txKey{}, tx)
 		return fn(ctxWithTx)
 	})
+}
+
+func GetDB(ctx context.Context, defaultDB *gorm.DB) *gorm.DB {
+	tx, ok := ctx.Value(txKey{}).(*gorm.DB)
+	if ok && tx != nil {
+		return tx
+	}
+
+	return defaultDB
 }

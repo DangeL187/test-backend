@@ -61,5 +61,5 @@ func loadVars() (string, string, error) {
 		vars["POSTGRES_SSL_MODE"],
 	)
 
-	return dsn, vars["JWT_PRIVATE_KEY"], nil
+	return dsn, vars["JWT_BEARER_TOKEN"], nil
 }
